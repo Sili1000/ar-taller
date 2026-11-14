@@ -125,6 +125,23 @@
     }
     vincular('marcador-hiro',  'Tarjeta A (Hiro) → cubo azul');
     vincular('marcador-kanji', 'Tarjeta B (Kanji) → esfera roja');
+
+    // ---- Umbral adaptativo (mejor tolerancia a la iluminación) ----
+    // Para encontrar el marcador, ARToolKit convierte la imagen a blanco y negro
+    // con un "umbral". Por defecto AR.js usa un umbral FIJO (100), que falla con
+    // poca luz, sombras o reflejos. El modo 3 (AUTO_ADAPTIVE) calcula el umbral
+    // por zonas de la imagen, adaptándose a la luz de cada parte.
+    // Modos de ARToolKit: 0 = fijo, 1 = auto mediana, 2 = auto Otsu, 3 = auto adaptativo.
+    var MODO_UMBRAL = 3;
+    var espera = setInterval(function () {
+      var escena = document.querySelector('a-scene');
+      var sesion = escena && escena.systems && escena.systems.arjs && escena.systems.arjs._arSession;
+      var controlador = sesion && sesion.arContext && sesion.arContext.arController;
+      if (controlador) {               // el controlador existe recién cuando la cámara arrancó
+        controlador.setThresholdMode(MODO_UMBRAL);
+        clearInterval(espera);
+      }
+    }, 300);
   </script>
 </body>
 </html>
