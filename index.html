@@ -2,7 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <!-- Zoom de la página bloqueado (minimum-scale y user-scalable=no).
+       AR.js agranda la página para cubrir la pantalla con la cámara; si el navegador
+       puede alejar el zoom, entra en un ciclo y la imagen queda ampliada ~4 veces,
+       dejando las figuras y el botón fuera de la pantalla. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Taller RA - ETN 1024</title>
 
   <!-- 1) LIBRERÍAS
