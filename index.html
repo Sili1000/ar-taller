@@ -75,9 +75,10 @@
     <!-- TARJETA A: marcador predefinido HIRO  ->  CUBO AZUL
          preset="hiro"   : patrón que AR.js reconoce.
          emitevents="true": avisa cuando el marcador aparece o se pierde.
-         smooth...       : suaviza la vibración del seguimiento. -->
+         smooth...       : suaviza la vibración promediando las últimas posiciones
+                           (smoothCount). Más alto = más estable pero con más retraso. -->
     <a-marker id="marcador-hiro" preset="hiro" emitevents="true"
-              smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="5">
+              smooth="true" smoothCount="3" smoothTolerance="0.01" smoothThreshold="2">
       <!-- El contenedor se escala desde el centro de la tarjeta;
            así la figura crece sin "hundirse" en el papel. -->
       <a-entity class="contenedor-figura" scale="1 1 1">
@@ -88,7 +89,7 @@
 
     <!-- TARJETA B: marcador predefinido KANJI  ->  ESFERA ROJA -->
     <a-marker id="marcador-kanji" preset="kanji" emitevents="true"
-              smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="5">
+              smooth="true" smoothCount="3" smoothTolerance="0.01" smoothThreshold="2">
       <a-entity class="contenedor-figura" scale="1 1 1">
         <!-- Esfera de radio 0.5, elevada 0.5 para quedar apoyada sobre la tarjeta -->
         <a-sphere position="0 0.5 0" radius="0.5" color="#e53935"></a-sphere>
@@ -132,15 +133,43 @@
     // poca luz, sombras o reflejos. El modo 3 (AUTO_ADAPTIVE) calcula el umbral
     // por zonas de la imagen, adaptándose a la luz de cada parte.
     // Modos de ARToolKit: 0 = fijo, 1 = auto mediana, 2 = auto Otsu, 3 = auto adaptativo.
-    var MODO_UMBRAL = 3;
+    //
+    // ---- Ajustes que se pueden probar desde el enlace, sin volver a subir el archivo ----
+    //   ?suave=N   -> promedia las últimas N posiciones (0 = sin suavizado). Por defecto 3.
+    //   ?umbral=M  -> modo de umbral de ARToolKit (0 a 3). Por defecto 3 (adaptativo).
+    //   Ejemplo: https://sili1000.github.io/ar-taller/?suave=0&umbral=0
+    var parametros = new URLSearchParams(location.search);
+    var SUAVE = parametros.has('suave') ? parseInt(parametros.get('suave'), 10) : 3;
+    var MODO_UMBRAL = parametros.has('umbral') ? parseInt(parametros.get('umbral'), 10) : 3;
+
+    document.getElementById('estado').insertAdjacentHTML('afterend',
+      '<div style="font-size:11px;opacity:.75">Suavizado: ' + (SUAVE > 0 ? SUAVE : 'no') +
+      ' · Umbral: ' + (MODO_UMBRAL === 3 ? 'adaptativo' : MODO_UMBRAL) + '</div>');
+
+    var umbralListo = false, suaveListo = false;
     var espera = setInterval(function () {
       var escena = document.querySelector('a-scene');
       var sesion = escena && escena.systems && escena.systems.arjs && escena.systems.arjs._arSession;
       var controlador = sesion && sesion.arContext && sesion.arContext.arController;
-      if (controlador) {               // el controlador existe recién cuando la cámara arrancó
+      if (controlador && !umbralListo) {   // existe recién cuando la cámara arrancó
         controlador.setThresholdMode(MODO_UMBRAL);
-        clearInterval(espera);
+        umbralListo = true;
       }
+      if (!suaveListo) {
+        var anclas = ['marcador-hiro', 'marcador-kanji'].map(function (id) {
+          var comp = document.getElementById(id).components['arjs-anchor'];
+          return comp && comp._arAnchor && comp._arAnchor.controls;
+        });
+        if (anclas[0] && anclas[1]) {
+          anclas.forEach(function (c) {
+            c.parameters.smooth = SUAVE > 0;
+            if (SUAVE > 0) c.parameters.smoothCount = SUAVE;
+            c.smoothMatrices = [];          // reinicia el historial de posiciones
+          });
+          suaveListo = true;
+        }
+      }
+      if (umbralListo && suaveListo) clearInterval(espera);
     }, 300);
   </script>
 </body>
