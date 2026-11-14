@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Taller RA - ETN 1024</title>
+
+  <!-- 1) LIBRERÍAS
+       A-Frame 1.6.0 : dibuja las figuras 3D (cubo, esfera) con etiquetas HTML.
+       AR.js 3.4.8   : usa la cámara, reconoce los marcadores Hiro/Kanji y calcula
+                       su posición y orientación (versión "aframe-ar.js" = seguimiento
+                       por marcadores, sin NFT).
+       Se fija la versión 3.4.8 (en lugar de "master") para que el código no cambie
+       solo si la librería se actualiza. -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.8/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    body { margin: 0; overflow: hidden; font-family: Arial, Helvetica, sans-serif; }
+
+    /* Capa de interfaz encima de la cámara */
+    #panel-superior {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      background: rgba(0, 0, 0, 0.55); color: #fff;
+      padding: 8px 12px; font-size: 13px; line-height: 1.35;
+    }
+    #panel-superior b { font-size: 14px; }
+    #estado { margin-top: 4px; color: #ffd54f; }
+
+    /* Botón abajo, para no tapar la zona central de seguimiento */
+    #panel-inferior {
+      position: fixed; bottom: 18px; left: 0; right: 0; z-index: 10;
+      display: flex; justify-content: center; align-items: center; gap: 12px;
+    }
+    #btn-tamano {
+      padding: 14px 22px; font-size: 16px; border: none; border-radius: 10px;
+      background: #1565c0; color: #fff; font-weight: bold;
+    }
+    #etiqueta-tamano {
+      background: rgba(0, 0, 0, 0.6); color: #fff;
+      padding: 10px 14px; border-radius: 10px; font-size: 15px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 2) INTERFAZ: nombres, estado de detección y botón de tamaño -->
+  <div id="panel-superior">
+    <b>Taller RA – ETN 1024</b><br />
+    Cristhian Tomas Silicuana Quispe · Nathan Raul Chavez Alvarez · Norman Gabriel Lopez Poma
+    <div id="estado">Buscando marcador…</div>
+  </div>
+
+  <div id="panel-inferior">
+    <button id="btn-tamano">Cambiar tamaño</button>
+    <span id="etiqueta-tamano">Normal</span>
+  </div>
+
+  <!-- 3) ESCENA DE REALIDAD AUMENTADA
+       arjs="sourceType: webcam"  -> la imagen de fondo es la cámara real.
+       vr-mode-ui="enabled:false" -> oculta el botón de realidad virtual (no se usa visor). -->
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true;"
+    arjs="sourceType: webcam; debugUIEnabled: false;">
+
+    <!-- TARJETA A: marcador predefinido HIRO  ->  CUBO AZUL
+         preset="hiro"   : patrón que AR.js reconoce.
+         emitevents="true": avisa cuando el marcador aparece o se pierde.
+         smooth...       : suaviza la vibración del seguimiento. -->
+    <a-marker id="marcador-hiro" preset="hiro" emitevents="true"
+              smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="5">
+      <!-- El contenedor se escala desde el centro de la tarjeta;
+           así la figura crece sin "hundirse" en el papel. -->
+      <a-entity class="contenedor-figura" scale="1 1 1">
+        <!-- Cubo de 1x1x1 (mismo ancho que el marcador), elevado 0.5 para quedar apoyado -->
+        <a-box position="0 0.5 0" width="1" height="1" depth="1" color="#1e5bff"></a-box>
+      </a-entity>
+    </a-marker>
+
+    <!-- TARJETA B: marcador predefinido KANJI  ->  ESFERA ROJA -->
+    <a-marker id="marcador-kanji" preset="kanji" emitevents="true"
+              smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="5">
+      <a-entity class="contenedor-figura" scale="1 1 1">
+        <!-- Esfera de radio 0.5, elevada 0.5 para quedar apoyada sobre la tarjeta -->
+        <a-sphere position="0 0.5 0" radius="0.5" color="#e53935"></a-sphere>
+      </a-entity>
+    </a-marker>
+
+    <!-- Cámara de la escena (AR.js la coloca según lo que ve la cámara real) -->
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <!-- 4) LÓGICA -->
+  <script>
+    // ---- Botón de tamaño: alterna entre 1.0 (Normal) y 1.5 (Ampliado) ----
+    // El estado es común para ambas figuras y vuelve a "Normal" al recargar la página.
+    var ampliado = false;
+    var boton = document.getElementById('btn-tamano');
+    var etiqueta = document.getElementById('etiqueta-tamano');
+
+    boton.addEventListener('click', function () {
+      ampliado = !ampliado;
+      var s = ampliado ? 1.5 : 1.0;
+      document.querySelectorAll('.contenedor-figura').forEach(function (c) {
+        c.setAttribute('scale', s + ' ' + s + ' ' + s);
+      });
+      etiqueta.textContent = ampliado ? 'Ampliado' : 'Normal';
+    });
+
+    // ---- Estado de detección (ayuda a explicar qué está reconociendo) ----
+    var estado = document.getElementById('estado');
+    function vincular(id, texto) {
+      var m = document.getElementById(id);
+      m.addEventListener('markerFound', function () { estado.textContent = 'Detectado: ' + texto; });
+      m.addEventListener('markerLost',  function () { estado.textContent = 'Buscando marcador…'; });
+    }
+    vincular('marcador-hiro',  'Tarjeta A (Hiro) → cubo azul');
+    vincular('marcador-kanji', 'Tarjeta B (Kanji) → esfera roja');
+  </script>
+</body>
+</html>
