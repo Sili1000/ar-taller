@@ -118,11 +118,17 @@
     });
 
     // ---- Estado de detección (ayuda a explicar qué está reconociendo) ----
+    // Se guarda qué tarjetas están visibles, para que perder una no borre el aviso de la otra.
     var estado = document.getElementById('estado');
+    var visibles = {};
+    function mostrarEstado() {
+      var textos = Object.keys(visibles);
+      estado.textContent = textos.length ? 'Detectado: ' + textos.join(' · ') : 'Buscando marcador…';
+    }
     function vincular(id, texto) {
       var m = document.getElementById(id);
-      m.addEventListener('markerFound', function () { estado.textContent = 'Detectado: ' + texto; });
-      m.addEventListener('markerLost',  function () { estado.textContent = 'Buscando marcador…'; });
+      m.addEventListener('markerFound', function () { visibles[texto] = true; mostrarEstado(); });
+      m.addEventListener('markerLost',  function () { delete visibles[texto]; mostrarEstado(); });
     }
     vincular('marcador-hiro',  'Tarjeta A (Hiro) → cubo azul');
     vincular('marcador-kanji', 'Tarjeta B (Kanji) → esfera roja');
